@@ -4,9 +4,9 @@ import { ImageUploader } from './components/ImageUploader';
 import { ImageGenerator } from './components/ImageGenerator';
 import { CollageCanvas } from './components/CollageCanvas';
 import { PhotoEditorModal } from './components/PhotoEditorModal';
+import { Button } from './components/Button';
 import { Header } from './components/Header';
 import { Gallery } from './components/Gallery';
-import { ActionBar } from './components/ActionBar';
 import { usePostcard } from './hooks/usePostcard';
 
 const App: React.FC = () => {
@@ -28,6 +28,20 @@ const App: React.FC = () => {
     apiKey,
     setApiKey
   } = usePostcard();
+
+  const handleDownload = () => {
+    if (images.length === 0) return;
+    
+    // Simple download of all images
+    images.forEach((img, index) => {
+      const link = document.createElement('a');
+      link.href = img.currentData;
+      link.download = `postcard-art-${index + 1}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  };
 
   const editingImage = images.find(img => img.id === editingImageId);
 
@@ -146,11 +160,32 @@ const App: React.FC = () => {
       </main>
 
       {/* Action Bar */}
-      <ActionBar 
-        photoCount={images.length} 
-        onReset={resetImages} 
-        onDownload={() => alert("High-res artwork generated! (This is a demo)")} 
-      />
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-black p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] z-40">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+           <div className="flex items-center gap-2 text-black font-bold font-display">
+               <span className="bg-black text-white px-2 py-0.5 rounded text-sm">{images.length}</span>
+               <span className="text-sm uppercase tracking-wide">Photos Ready</span>
+           </div>
+           <div className="flex gap-4">
+               <Button 
+                    variant="ghost" 
+                    onClick={resetImages} 
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50 border-transparent"
+                    disabled={images.length === 0}
+                >
+                   Reset All
+               </Button>
+               <Button 
+                    variant="accent"
+                    className="min-w-[200px] text-lg"
+                    disabled={images.length === 0}
+                    onClick={handleDownload}
+               >
+                   🚀 Download Art
+               </Button>
+           </div>
+        </div>
+      </div>
 
       {/* Editor Modal */}
       {editingImage && (

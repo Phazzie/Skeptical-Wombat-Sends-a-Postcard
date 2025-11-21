@@ -2,19 +2,7 @@ import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
 import { GEMINI_MODELS } from "../constants";
 
 /**
- * Creates a new GoogleGenAI instance.
- * We create a new instance per call to ensure we pick up any dynamically selected API keys.
- */
-const getAiClient = (apiKey?: string) => {
-  const key = apiKey || process.env.API_KEY;
-  if (!key) {
-    throw new Error("API Key is missing. Please provide it in the UI or set process.env.API_KEY.");
-  }
-  return new GoogleGenAI({ apiKey: key });
-};
-
-/**
- * Helper to extract the first image part from a Gemini response.
+ * Helper to extract the first image found in a Gemini response.
  */
 const extractImageFromResponse = (response: GenerateContentResponse): string => {
   const candidates = response.candidates;
@@ -30,6 +18,31 @@ const extractImageFromResponse = (response: GenerateContentResponse): string => 
 };
 
 /**
+ * Helper to clean a base64 string and detect mime type.
+ */
+const processBase64Image = (base64Image: string) => {
+  let mimeType = 'image/jpeg';
+  const match = base64Image.match(/^data:(image\/[a-zA-Z]+);base64,/);
+  if (match && match[1]) {
+    mimeType = match[1];
+  }
+  const cleanData = base64Image.replace(/^data:image\/[a-zA-Z]+;base64,/, "");
+  return { mimeType, cleanData };
+};
+
+/**
+ * Creates a new GoogleGenAI instance.
+ * We create a new instance per call to ensure we pick up any dynamically selected API keys.
+ */
+const getAiClient = (apiKey?: string) => {
+  const key = apiKey || process.env.API_KEY;
+  if (!key) {
+    throw new Error("API Key is missing. Please provide it in the UI or set process.env.API_KEY.");
+  }
+  return new GoogleGenAI({ apiKey: key });
+};
+
+/**
  * Edits an image using the Gemini Flash Image model.
  * @param base64Image The source image in base64 format.
  * @param prompt The user's instruction for editing.
@@ -42,16 +55,7 @@ export const editImageWithGemini = async (
   apiKey?: string
 ): Promise<string> => {
   const ai = getAiClient(apiKey);
-  
-  // Detect mime type from base64 prefix if present, default to jpeg
-  let mimeType = 'image/jpeg';
-  const match = base64Image.match(/^data:(image\/[a-zA-Z]+);base64,/);
-  if (match && match[1]) {
-    mimeType = match[1];
-  }
-
-  // Clean the base64 string
-  const cleanBase64 = base64Image.replace(/^data:image\/[a-zA-Z]+;base64,/, "");
+  const { mimeType, cleanData } = processBase64Image(base64Image);
 
   try {
     const response = await ai.models.generateContent({
@@ -60,7 +64,7 @@ export const editImageWithGemini = async (
         parts: [
           {
             inlineData: {
-              data: cleanBase64,
+              data: cleanData,
               mimeType: mimeType,
             },
           },
@@ -112,7 +116,6 @@ export const generateImageWithGemini = async (
           aspectRatio: aspectRatio,
           imageSize: size,
         },
-        // Note: google_search tool is available for this model if needed, but not requested here.
       },
     });
 

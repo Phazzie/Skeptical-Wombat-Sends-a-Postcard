@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { ImageAsset, PostcardSize, Orientation } from '../types';
 import { POSTCARD_CONFIGS } from '../constants';
 
@@ -8,7 +8,7 @@ interface CollageCanvasProps {
   images: ImageAsset[];
 }
 
-export const CollageCanvas: React.FC<CollageCanvasProps> = ({
+export const CollageCanvas: React.FC<CollageCanvasProps> = memo(({
   size,
   orientation,
   images,
@@ -74,4 +74,6 @@ export const CollageCanvas: React.FC<CollageCanvasProps> = ({
       </div>
     </div>
   );
-};
+});
+
+CollageCanvas.displayName = 'CollageCanvas';
