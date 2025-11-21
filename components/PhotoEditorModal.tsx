@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { ImageAsset } from '../types';
 import { Button } from './Button';
-import { EDITOR_PRESETS, EDITOR_TABS, PresetStyle } from '../constants';
+import { EDITOR_PRESETS, EDITOR_TABS, PresetStyle, MODEL_LABELS } from '../constants';
 import { editImageWithGemini } from '../services/geminiService';
 
 interface PhotoEditorModalProps {
   image: ImageAsset;
   onClose: () => void;
   onSave: (id: string, newData: string) => void;
+  apiKey?: string;
 }
 
 export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
   image,
   onClose,
   onSave,
+  apiKey,
 }) => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -27,7 +29,7 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
     setError(null);
 
     try {
-      const newImageData = await editImageWithGemini(image.currentData, prompt);
+      const newImageData = await editImageWithGemini(image.currentData, prompt, apiKey);
       setPreviewUrl(newImageData);
     } catch (err) {
       setError("Failed to process image. Please try a different prompt.");
@@ -117,7 +119,7 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
                     {/* Prompt Input */}
                     <div className="mb-8">
                         <label className="block text-sm font-bold text-zinc-400 mb-3 uppercase tracking-wider">
-                            Magic Editor (Gemini 2.5 Flash)
+                            Magic Editor ({MODEL_LABELS.EDIT})
                         </label>
                         <div className="relative group">
                             <textarea

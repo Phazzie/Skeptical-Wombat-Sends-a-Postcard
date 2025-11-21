@@ -61,3 +61,13 @@ export const EDITOR_PRESETS: Record<string, PresetStyle[]> = {
     { label: "Cool & Moody", prompt: "Apply a cool, cinematic blue tone", description: "Dramatic atmosphere" },
   ]
 };
+
+export const GEMINI_MODELS = {
+  EDIT: 'gemini-2.5-flash-image',
+  GENERATE: 'gemini-3-pro-image-preview',
+};
+
+export const MODEL_LABELS = {
+  EDIT: 'Gemini 2.5 Flash',
+  GENERATE: 'Gemini 3 Pro',
+};

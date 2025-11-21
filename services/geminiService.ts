@@ -1,28 +1,47 @@
-import { GoogleGenAI, Modality } from "@google/genai";
+import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
+import { GEMINI_MODELS } from "../constants";
 
 /**
  * Creates a new GoogleGenAI instance.
  * We create a new instance per call to ensure we pick up any dynamically selected API keys.
  */
-const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please set process.env.API_KEY.");
+const getAiClient = (apiKey?: string) => {
+  const key = apiKey || process.env.API_KEY;
+  if (!key) {
+    throw new Error("API Key is missing. Please provide it in the UI or set process.env.API_KEY.");
   }
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenAI({ apiKey: key });
+};
+
+/**
+ * Helper to extract the first image part from a Gemini response.
+ */
+const extractImageFromResponse = (response: GenerateContentResponse): string => {
+  const candidates = response.candidates;
+  if (candidates && candidates.length > 0) {
+    const parts = candidates[0].content.parts;
+    for (const part of parts) {
+      if (part.inlineData && part.inlineData.data) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
+    }
+  }
+  throw new Error("No image data returned from Gemini.");
 };
 
 /**
  * Edits an image using the Gemini Flash Image model.
  * @param base64Image The source image in base64 format.
  * @param prompt The user's instruction for editing.
+ * @param apiKey Optional API key to use for this request.
  * @returns A promise resolving to the new base64 image string.
  */
 export const editImageWithGemini = async (
   base64Image: string,
-  prompt: string
+  prompt: string,
+  apiKey?: string
 ): Promise<string> => {
-  const ai = getAiClient();
+  const ai = getAiClient(apiKey);
   
   // Detect mime type from base64 prefix if present, default to jpeg
   let mimeType = 'image/jpeg';
@@ -36,7 +55,7 @@ export const editImageWithGemini = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: GEMINI_MODELS.EDIT,
       contents: {
         parts: [
           {
@@ -55,18 +74,7 @@ export const editImageWithGemini = async (
       },
     });
 
-    // Extract image from response
-    const candidates = response.candidates;
-    if (candidates && candidates.length > 0) {
-      const parts = candidates[0].content.parts;
-      for (const part of parts) {
-        if (part.inlineData && part.inlineData.data) {
-          return `data:image/png;base64,${part.inlineData.data}`;
-        }
-      }
-    }
-    
-    throw new Error("No image data returned from Gemini.");
+    return extractImageFromResponse(response);
   } catch (error) {
     console.error("Gemini Image Edit Error:", error);
     throw error;
@@ -78,18 +86,20 @@ export const editImageWithGemini = async (
  * @param prompt The text description of the image to generate.
  * @param size The resolution of the generated image.
  * @param aspectRatio The aspect ratio of the generated image.
+ * @param apiKey Optional API key to use for this request.
  * @returns A promise resolving to the base64 image string.
  */
 export const generateImageWithGemini = async (
   prompt: string,
   size: '1K' | '2K' | '4K',
-  aspectRatio: '1:1' | '3:4' | '4:3' | '9:16' | '16:9'
+  aspectRatio: '1:1' | '3:4' | '4:3' | '9:16' | '16:9',
+  apiKey?: string
 ): Promise<string> => {
-  const ai = getAiClient();
+  const ai = getAiClient(apiKey);
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview',
+      model: GEMINI_MODELS.GENERATE,
       contents: {
         parts: [
           {
@@ -106,17 +116,7 @@ export const generateImageWithGemini = async (
       },
     });
 
-    const candidates = response.candidates;
-    if (candidates && candidates.length > 0) {
-      const parts = candidates[0].content.parts;
-      for (const part of parts) {
-        if (part.inlineData && part.inlineData.data) {
-          return `data:image/png;base64,${part.inlineData.data}`;
-        }
-      }
-    }
-
-    throw new Error("No image generated.");
+    return extractImageFromResponse(response);
   } catch (error) {
     console.error("Gemini Image Generation Error:", error);
     throw error;

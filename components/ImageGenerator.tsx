@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { Button } from './Button';
 import { Orientation } from '../types';
 import { generateImageWithGemini } from '../services/geminiService';
+import { MODEL_LABELS } from '../constants';
 
 interface ImageGeneratorProps {
   orientation: Orientation;
   onImageGenerated: (base64: string, prompt: string) => void;
+  apiKey?: string;
 }
 
 export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
   orientation,
   onImageGenerated,
+  apiKey,
 }) => {
   const [prompt, setPrompt] = useState('');
   const [size, setSize] = useState<'1K' | '2K' | '4K'>('1K');
@@ -36,11 +39,13 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
     const aspectRatio = orientation === Orientation.Landscape ? '16:9' : '9:16';
 
     try {
-      const result = await generateImageWithGemini(prompt, size, aspectRatio);
+      const result = await generateImageWithGemini(prompt, size, aspectRatio, apiKey);
       onImageGenerated(result, prompt);
       setPrompt(''); // Clear prompt on success
-    } catch (err: any) {
-      if (err.message?.includes("Requested entity was not found") && window.aistudio) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      
+      if (errorMessage.includes("Requested entity was not found") && window.aistudio) {
         // Handle possible stale key
         await window.aistudio.openSelectKey();
         setError("API Key issue detected. Please try again.");
@@ -56,7 +61,7 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
     <div className="w-full bg-slate-50 rounded-2xl border-2 border-black border-dashed p-6 hover:bg-pop-yellow/5 transition-colors group">
       <div className="mb-4">
         <label className="block text-lg font-display font-bold text-black mb-2 flex items-center gap-2">
-          <span className="bg-pop-blue text-white px-2 py-0.5 rounded text-sm">Gemini 3 Pro</span>
+          <span className="bg-pop-blue text-white px-2 py-0.5 rounded text-sm">{MODEL_LABELS.GENERATE}</span>
           Describe your scene
         </label>
         <textarea

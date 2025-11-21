@@ -4,9 +4,9 @@ import { ImageUploader } from './components/ImageUploader';
 import { ImageGenerator } from './components/ImageGenerator';
 import { CollageCanvas } from './components/CollageCanvas';
 import { PhotoEditorModal } from './components/PhotoEditorModal';
-import { Button } from './components/Button';
 import { Header } from './components/Header';
 import { Gallery } from './components/Gallery';
+import { ActionBar } from './components/ActionBar';
 import { usePostcard } from './hooks/usePostcard';
 
 const App: React.FC = () => {
@@ -24,7 +24,9 @@ const App: React.FC = () => {
     handleGeneratedImage,
     handleRemoveImage,
     handleSaveEdit,
-    resetImages
+    resetImages,
+    apiKey,
+    setApiKey
   } = usePostcard();
 
   const editingImage = images.find(img => img.id === editingImageId);
@@ -35,6 +37,23 @@ const App: React.FC = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
         
+        {/* API Key Input */}
+        <section>
+          <div className="bg-white p-4 rounded-xl border-2 border-black shadow-neo-sm flex flex-col sm:flex-row items-center gap-4">
+            <label className="font-bold font-display whitespace-nowrap">Gemini API Key:</label>
+            <input 
+              type="password" 
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your API key here..."
+              className="w-full sm:flex-1 bg-slate-50 border-2 border-slate-200 rounded-lg px-3 py-2 focus:border-pop-blue focus:outline-none font-mono text-sm"
+            />
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-xs font-bold text-pop-blue hover:underline whitespace-nowrap">
+              Get Key ↗
+            </a>
+          </div>
+        </section>
+
         {/* Section 1: Config */}
         <section>
           <SizeSelector 
@@ -87,7 +106,11 @@ const App: React.FC = () => {
               {inputMode === 'upload' ? (
                  <ImageUploader onUpload={handleUpload} />
               ) : (
-                 <ImageGenerator orientation={orientation} onImageGenerated={handleGeneratedImage} />
+                 <ImageGenerator 
+                    orientation={orientation} 
+                    onImageGenerated={handleGeneratedImage} 
+                    apiKey={apiKey}
+                 />
               )}
               
               <Gallery 
@@ -123,32 +146,11 @@ const App: React.FC = () => {
       </main>
 
       {/* Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-black p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] z-40">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-           <div className="flex items-center gap-2 text-black font-bold font-display">
-               <span className="bg-black text-white px-2 py-0.5 rounded text-sm">{images.length}</span>
-               <span className="text-sm uppercase tracking-wide">Photos Ready</span>
-           </div>
-           <div className="flex gap-4">
-               <Button 
-                    variant="ghost" 
-                    onClick={resetImages} 
-                    className="text-red-500 hover:text-red-600 hover:bg-red-50 border-transparent"
-                    disabled={images.length === 0}
-                >
-                   Reset All
-               </Button>
-               <Button 
-                    variant="accent"
-                    className="min-w-[200px] text-lg"
-                    disabled={images.length === 0}
-                    onClick={() => alert("High-res artwork generated! (This is a demo)")}
-               >
-                   🚀 Download Art
-               </Button>
-           </div>
-        </div>
-      </div>
+      <ActionBar 
+        photoCount={images.length} 
+        onReset={resetImages} 
+        onDownload={() => alert("High-res artwork generated! (This is a demo)")} 
+      />
 
       {/* Editor Modal */}
       {editingImage && (
@@ -156,6 +158,7 @@ const App: React.FC = () => {
           image={editingImage}
           onClose={() => setEditingImageId(null)}
           onSave={handleSaveEdit}
+          apiKey={apiKey}
         />
       )}
     </div>

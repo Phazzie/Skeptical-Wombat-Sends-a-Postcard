@@ -9,49 +9,53 @@ export const usePostcard = () => {
   const [images, setImages] = useState<ImageAsset[]>([]);
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<InputMode>('upload');
+  const [apiKey, setApiKey] = useState<string>('');
 
-  const handleUpload = (files: FileList) => {
-    const newImages: ImageAsset[] = Array.from(files).map((file) => ({
+  const handleUpload = async (files: FileList) => {
+    const fileArray = Array.from(files);
+    
+    // 1. Create placeholders immediately so UI updates
+    const newImages: ImageAsset[] = fileArray.map((file) => ({
       id: Math.random().toString(36).substring(2, 9),
       name: file.name,
       originalData: '',
       currentData: '',
-      isProcessing: false,
+      isProcessing: true, // Mark as processing initially
     }));
 
-    // Pre-allocate IDs to maintain order, then update async as files read
-    Array.from(files).forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImages((prev) => {
-          const updated = [...prev];
-          // Find the placeholder we created
-          const targetIndex = prev.findIndex(p => p.id === newImages[index].id);
-          
-          if (targetIndex === -1) {
-               // Fallback if somehow state shifted
-               updated.push({
-                  id: Math.random().toString(36).substring(2,9),
-                  name: file.name,
-                  originalData: result,
-                  currentData: result,
-                  isProcessing: false
-               });
-          } else {
-              updated[targetIndex] = {
-                  ...updated[targetIndex],
-                  originalData: result,
-                  currentData: result
-              };
-          }
-          return updated;
-        });
-      };
-      reader.readAsDataURL(file);
+    setImages(prev => [...prev, ...newImages]);
+
+    // 2. Process files in parallel
+    const readPromises = fileArray.map((file, index) => {
+      return new Promise<{ id: string, data: string }>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          resolve({
+            id: newImages[index].id,
+            data: e.target?.result as string
+          });
+        };
+        reader.readAsDataURL(file);
+      });
     });
 
-    setImages(prev => [...prev, ...newImages]);
+    // 3. Wait for all to finish and update state once
+    const results = await Promise.all(readPromises);
+
+    setImages((prev) => {
+      return prev.map(img => {
+        const result = results.find(r => r.id === img.id);
+        if (result) {
+          return {
+            ...img,
+            originalData: result.data,
+            currentData: result.data,
+            isProcessing: false
+          };
+        }
+        return img;
+      });
+    });
   };
 
   const handleGeneratedImage = (base64: string, prompt: string) => {
@@ -91,6 +95,8 @@ export const usePostcard = () => {
     handleGeneratedImage,
     handleRemoveImage,
     handleSaveEdit,
-    resetImages
+    resetImages,
+    apiKey,
+    setApiKey
   };
 };
