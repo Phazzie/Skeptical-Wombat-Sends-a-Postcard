@@ -1,0 +1,5 @@
+{
+  "name": "PostcardAI Studio",
+  "description": "Design custom postcards in standard sizes (4x6, 5x7, 6x9, 6x11). Upload photos, use Gemini AI to artistically retouch or style them, and auto-generate print-ready collages.",
+  "requestFramePermissions": []
+}
